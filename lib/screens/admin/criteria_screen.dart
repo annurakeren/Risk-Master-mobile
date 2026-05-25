@@ -92,7 +92,7 @@ class _CriteriaScreenState extends State<CriteriaScreen> {
               const SizedBox(height: AppSpacing.sm),
               StatefulBuilder(
                 builder: (ctx, setSt) => DropdownButtonFormField<String>(
-                  value: type,
+                  initialValue: type,
                   decoration: const InputDecoration(labelText: 'Tipe'),
                   items: const [
                     DropdownMenuItem(

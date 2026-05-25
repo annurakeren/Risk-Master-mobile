@@ -149,7 +149,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               // Role
               StatefulBuilder(
                 builder: (ctx, setSt) => DropdownButtonFormField<String>(
-                  value: _role,
+                  initialValue: _role,
                   decoration: const InputDecoration(
                     labelText: 'Peran',
                     prefixIcon: Icon(Icons.badge_outlined),

@@ -120,7 +120,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
               ],
               StatefulBuilder(
                 builder: (ctx, setSt) => DropdownButtonFormField<String>(
-                  value: role,
+                  initialValue: role,
                   decoration: const InputDecoration(labelText: 'Peran'),
                   items: const [
                     DropdownMenuItem(value: 'user', child: Text('User')),
