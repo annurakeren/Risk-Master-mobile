@@ -19,13 +19,29 @@ class AssessmentProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<Assessment?> createAssessment(String title, String desc, int userId) async {
-    final a = await _api.createAssessment(title, desc, userId);
+  Future<Assessment?> createAssessment(String title, String desc, List<int> alternativeIds) async {
+    final a = await _api.createAssessment(title, desc, alternativeIds);
     if (a != null) await fetchAssessments();
     return a;
   }
 
   Future<bool> submitValues(int assessmentId, List<Map<String, dynamic>> values) async {
     return await _api.submitValues(assessmentId, values);
+  }
+  
+  Future<Map<String, dynamic>> getAssessmentDetail(int id) async {
+    return await _api.getAssessmentDetail(id);
+  }
+  
+  Future<Map<String, dynamic>> calculateEdas(int assessmentId) async {
+    final res = await _api.calculateEdas(assessmentId);
+    if (res['success']) {
+      await fetchAssessments(); // Refresh list to update status
+    }
+    return res;
+  }
+  
+  Future<Map<String, dynamic>> getEdasResults(int assessmentId) async {
+    return await _api.getEdasResults(assessmentId);
   }
 }

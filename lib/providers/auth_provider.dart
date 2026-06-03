@@ -1,9 +1,7 @@
-// lib/providers/auth_provider.dart
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../models/user.dart';
 import '../services/api_service.dart';
-import '../services/dummy_data.dart';
 
 class AuthProvider extends ChangeNotifier {
   User? _currentUser;
@@ -17,19 +15,25 @@ class AuthProvider extends ChangeNotifier {
   bool get isAdmin => _currentUser?.isAdmin ?? false;
 
   final ApiService _api = ApiService();
+  final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
-  // Cek apakah sudah login dari SharedPreferences
+  // Cek apakah sudah login dari Secure Storage
   Future<void> checkAuthStatus() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token');
-    final userId = prefs.getInt('user_id');
-    if (token != null && userId != null) {
-      try {
-        _currentUser = DummyData.users.firstWhere((u) => u.id == userId);
-        notifyListeners();
-      } catch (_) {
-        await prefs.clear();
-      }
+    final token = await _storage.read(key: 'token');
+    final userIdStr = await _storage.read(key: 'user_id');
+    final userRole = await _storage.read(key: 'user_role');
+    final userName = await _storage.read(key: 'user_name');
+    
+    if (token != null && userIdStr != null && userRole != null && userName != null) {
+      _currentUser = User(
+        id: int.tryParse(userIdStr) ?? 0,
+        name: userName,
+        email: '', // Email not explicitly needed for current UI if not stored
+        role: userRole,
+      );
+      notifyListeners();
+    } else {
+      await _storage.deleteAll();
     }
   }
 

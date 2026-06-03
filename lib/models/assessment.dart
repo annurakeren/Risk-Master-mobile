@@ -5,6 +5,11 @@ class Assessment {
   final String title;
   final String description;
   final String status; // 'draft' atau 'completed'
+  final int alternativesCount;
+  final int expectedCount;
+  final int filledCount;
+  final bool isComplete;
+  final String ownerName;
 
   Assessment({
     required this.id,
@@ -12,14 +17,24 @@ class Assessment {
     required this.title,
     required this.description,
     required this.status,
+    this.alternativesCount = 0,
+    this.expectedCount = 0,
+    this.filledCount = 0,
+    this.isComplete = false,
+    this.ownerName = '',
   });
 
   factory Assessment.fromJson(Map<String, dynamic> json) => Assessment(
     id: json['id'],
-    userId: json['user_id'],
-    title: json['title'],
+    userId: json['user_id'] ?? json['owner_id'] ?? 0,
+    title: json['title'] ?? '',
     description: json['description'] ?? '',
-    status: json['status'],
+    status: json['status'] ?? 'draft',
+    alternativesCount: json['alternatives_count'] ?? 0,
+    expectedCount: json['expected_count'] ?? 0,
+    filledCount: json['filled_count'] ?? 0,
+    isComplete: json['is_complete'] == true || json['is_complete'] == 1,
+    ownerName: json['owner'] != null ? json['owner']['name'] ?? '' : '',
   );
 
   bool get isCompleted => status == 'completed';
@@ -69,6 +84,7 @@ class EdasResult {
   final double nsn;
   final double asScore;
   final int rank;
+  final String qualityLabel;
 
   EdasResult({
     required this.alternativeId,
@@ -81,18 +97,20 @@ class EdasResult {
     required this.nsn,
     required this.asScore,
     required this.rank,
+    this.qualityLabel = '',
   });
 
   factory EdasResult.fromJson(Map<String, dynamic> json) => EdasResult(
-    alternativeId: json['alternative_id'],
-    alternativeName: json['alternative_name'] ?? '',
-    pda: (json['pda'] as num).toDouble(),
-    nda: (json['nda'] as num).toDouble(),
-    sp: (json['sp'] as num).toDouble(),
-    sn: (json['sn'] as num).toDouble(),
-    nsp: (json['nsp'] as num).toDouble(),
-    nsn: (json['nsn'] as num).toDouble(),
-    asScore: (json['as_score'] as num).toDouble(),
-    rank: json['rank'],
+    alternativeId: json['alternative_id'] ?? json['alternative']?['id'] ?? 0,
+    alternativeName: json['alternative_name'] ?? json['alternative']?['name'] ?? '',
+    pda: (json['pda'] as num?)?.toDouble() ?? 0,
+    nda: (json['nda'] as num?)?.toDouble() ?? 0,
+    sp: (json['sp'] as num?)?.toDouble() ?? 0,
+    sn: (json['sn'] as num?)?.toDouble() ?? 0,
+    nsp: (json['nsp'] as num?)?.toDouble() ?? 0,
+    nsn: (json['nsn'] as num?)?.toDouble() ?? 0,
+    asScore: (json['as_score'] as num?)?.toDouble() ?? 0,
+    rank: json['rank'] ?? 0,
+    qualityLabel: json['quality_label'] ?? '',
   );
 }

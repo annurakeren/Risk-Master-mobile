@@ -9,8 +9,12 @@ import 'providers/assessment_provider.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/admin/admin_dashboard.dart';
 import 'screens/user/user_dashboard.dart';
+import 'services/api_service.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  ApiService().init();
+
   runApp(
     MultiProvider(
       providers: [

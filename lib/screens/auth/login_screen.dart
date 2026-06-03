@@ -37,7 +37,7 @@ class _LoginScreenState extends State<LoginScreen> {
         context,
         MaterialPageRoute(
           builder: (_) =>
-              user.isAdmin ? const AdminDashboard() : const UserDashboard(),
+          user.isAdmin ? const AdminDashboard() : const UserDashboard(),
         ),
       );
     } else {
@@ -122,7 +122,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       prefixIcon: Icon(Icons.email_outlined),
                     ),
                     validator: (v) =>
-                        v == null || !v.contains('@') ? 'Email tidak valid' : null,
+                    v == null || !v.contains('@') ? 'Email tidak valid' : null,
                   ),
                   const SizedBox(height: AppSpacing.md),
 
@@ -142,7 +142,8 @@ class _LoginScreenState extends State<LoginScreen> {
                             setState(() => _obscure = !_obscure),
                       ),
                     ),
-                    validator: (v) => v == null || v.isEmpty
+                    validator: (v) =>
+                    v == null || v.isEmpty
                         ? 'Password tidak boleh kosong'
                         : null,
                   ),
@@ -153,13 +154,13 @@ class _LoginScreenState extends State<LoginScreen> {
                     onPressed: auth.isLoading ? null : _login,
                     child: auth.isLoading
                         ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2,
-                            ),
-                          )
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
                         : const Text('Masuk'),
                   ),
                   const SizedBox(height: AppSpacing.md),
@@ -174,85 +175,24 @@ class _LoginScreenState extends State<LoginScreen> {
                             color: AppColors.textSecondary, fontSize: 14),
                       ),
                       TextButton(
-                        onPressed: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const RegisterScreen(),
-                          ),
-                        ),
+                        onPressed: () =>
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const RegisterScreen(),
+                              ),
+                            ),
                         child: const Text('Daftar Sekarang'),
                       ),
                     ],
                   ),
                   const SizedBox(height: AppSpacing.lg),
-
-                  // Demo info card
-                  Container(
-                    padding: const EdgeInsets.all(AppSpacing.md),
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceContainerLow,
-                      borderRadius: BorderRadius.circular(AppRadius.md),
-                      border: const Border(
-                        left: BorderSide(
-                            color: AppColors.primaryLight, width: 3),
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Row(
-                          children: [
-                            Icon(Icons.info_outline,
-                                size: 14, color: AppColors.primary),
-                            SizedBox(width: 6),
-                            Text(
-                              'DEMO LOGIN',
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 1.0,
-                                color: AppColors.primary,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        _demoRow(
-                            Icons.admin_panel_settings, 'Admin:', 'admin@riskmaster.com'),
-                        const SizedBox(height: 4),
-                        _demoRow(Icons.person, 'User:', 'budi@kampus.ac.id'),
-                        const SizedBox(height: 4),
-                        _demoRow(Icons.key, 'Password:', 'bebas (apapun)'),
-                      ],
-                    ),
-                  ),
                 ],
               ),
             ),
           ),
         ),
       ),
-    );
-  }
-
-  Widget _demoRow(IconData icon, String label, String value) {
-    return Row(
-      children: [
-        Icon(icon, size: 13, color: AppColors.textTertiary),
-        const SizedBox(width: 6),
-        Text(
-          label,
-          style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textSecondary),
-        ),
-        const SizedBox(width: 4),
-        Text(
-          value,
-          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
-        ),
-      ],
     );
   }
 }

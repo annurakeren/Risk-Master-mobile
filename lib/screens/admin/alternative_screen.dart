@@ -235,95 +235,108 @@ class _AlternativeCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border(
-          left: BorderSide(color: borderColor, width: 3),
-          right: const BorderSide(color: AppColors.outlineVariant),
-          top: const BorderSide(color: AppColors.outlineVariant),
-          bottom: const BorderSide(color: AppColors.outlineVariant),
-        ),
+        border: Border.all(color: AppColors.outlineVariant),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: borderColor.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(AppRadius.sm),
-              ),
-              child: Icon(
-                isAdminSource
-                    ? Icons.admin_panel_settings_outlined
-                    : Icons.person_outline,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Left Accent Bar
+              Container(
+                width: 3,
                 color: borderColor,
-                size: 18,
               ),
-            ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: Text(
-                          alt.name,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
-                            color: AppColors.textPrimary,
-                          ),
+                      Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: borderColor.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(AppRadius.sm),
+                        ),
+                        child: Icon(
+                          isAdminSource
+                              ? Icons.admin_panel_settings_outlined
+                              : Icons.person_outline,
+                          color: borderColor,
+                          size: 18,
                         ),
                       ),
-                      SourceBadge(source: alt.source),
+                      const SizedBox(width: AppSpacing.md),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    alt.name,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 14,
+                                      color: AppColors.textPrimary,
+                                    ),
+                                  ),
+                                ),
+                                SourceBadge(source: alt.source),
+                              ],
+                            ),
+                            if (alt.description.isNotEmpty) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                alt.description,
+                                style: const TextStyle(
+                                    fontSize: 12, color: AppColors.textSecondary),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      if (canEdit) ...[
+                        const SizedBox(width: AppSpacing.sm),
+                        PopupMenuButton<String>(
+                          icon: const Icon(Icons.more_vert,
+                              size: 18, color: AppColors.textTertiary),
+                          onSelected: (v) {
+                            if (v == 'edit') onEdit();
+                            if (v == 'delete') onDelete();
+                          },
+                          itemBuilder: (_) => [
+                            const PopupMenuItem(
+                                value: 'edit',
+                                child: Row(children: [
+                                  Icon(Icons.edit_outlined, size: 16),
+                                  SizedBox(width: 8),
+                                  Text('Edit'),
+                                ])),
+                            if (canDelete)
+                              const PopupMenuItem(
+                                  value: 'delete',
+                                  child: Row(children: [
+                                    Icon(Icons.delete_outline,
+                                        size: 16, color: AppColors.error),
+                                    SizedBox(width: 8),
+                                    Text('Hapus',
+                                        style: TextStyle(color: AppColors.error)),
+                                  ])),
+                          ],
+                        ),
+                      ],
                     ],
                   ),
-                  if (alt.description.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      alt.description,
-                      style: const TextStyle(
-                          fontSize: 12, color: AppColors.textSecondary),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            if (canEdit) ...[
-              const SizedBox(width: AppSpacing.sm),
-              PopupMenuButton<String>(
-                icon: const Icon(Icons.more_vert,
-                    size: 18, color: AppColors.textTertiary),
-                onSelected: (v) {
-                  if (v == 'edit') onEdit();
-                  if (v == 'delete') onDelete();
-                },
-                itemBuilder: (_) => [
-                  const PopupMenuItem(
-                      value: 'edit',
-                      child: Row(children: [
-                        Icon(Icons.edit_outlined, size: 16),
-                        SizedBox(width: 8),
-                        Text('Edit'),
-                      ])),
-                  if (canDelete)
-                    const PopupMenuItem(
-                        value: 'delete',
-                        child: Row(children: [
-                          Icon(Icons.delete_outline,
-                              size: 16, color: AppColors.error),
-                          SizedBox(width: 8),
-                          Text('Hapus',
-                              style: TextStyle(color: AppColors.error)),
-                        ])),
-                ],
+                ),
               ),
             ],
-          ],
+          ),
         ),
       ),
     );

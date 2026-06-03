@@ -6,6 +6,7 @@ import '../../models/alternative.dart';
 import '../../models/criteria.dart';
 import '../../services/api_service.dart';
 import '../../widgets/app_widgets.dart';
+import 'edas_result_screen.dart';
 
 class InputNilaiScreen extends StatefulWidget {
   final Assessment assessment;
@@ -19,6 +20,10 @@ class _InputNilaiScreenState extends State<InputNilaiScreen> {
   List<Criteria> _criteria = [];
   bool _isLoading = true;
   bool _isSaving = false;
+  bool _isCalculating = false;
+  
+  Map<String, dynamic>? _assessmentData;
+
   // Map[alternativeId][criteriaId] = nilai
   final Map<int, Map<int, TextEditingController>> _controllers = {};
 
@@ -32,7 +37,15 @@ class _InputNilaiScreenState extends State<InputNilaiScreen> {
 
   Future<void> _load() async {
     setState(() => _isLoading = true);
-    _alternatives = await _api.getAlternatives();
+    
+    final detail = await _api.getAssessmentDetail(widget.assessment.id);
+    _assessmentData = detail;
+    
+    if (detail.isNotEmpty && detail['assessment'] != null) {
+      final altsList = detail['assessment']['alternatives'] as List? ?? [];
+      _alternatives = altsList.map((e) => Alternative.fromJson(e)).toList();
+    }
+    
     _criteria = await _api.getCriteria();
 
     for (final alt in _alternatives) {
@@ -41,6 +54,19 @@ class _InputNilaiScreenState extends State<InputNilaiScreen> {
         _controllers[alt.id]![c.id] = TextEditingController();
       }
     }
+    
+    // Auto-fill existing values if any
+    if (detail['values'] != null) {
+       for(var val in detail['values']) {
+          final aId = val['alternative_id'];
+          final cId = val['criteria_id'];
+          final v = val['value'];
+          if (_controllers.containsKey(aId) && _controllers[aId]!.containsKey(cId)) {
+             _controllers[aId]![cId]!.text = v.toString();
+          }
+       }
+    }
+    
     setState(() => _isLoading = false);
   }
 
@@ -65,11 +91,11 @@ class _InputNilaiScreenState extends State<InputNilaiScreen> {
 
   int get _totalCount => _alternatives.length * _criteria.length;
   bool get _isAllFilled => _filledCount == _totalCount && _totalCount > 0;
+  bool get _isCompleted => widget.assessment.status == 'completed' || (_assessmentData?['assessment']?['status'] == 'completed');
 
-  Future<void> _submit() async {
+  Future<void> _submitAndCalculate() async {
     if (!_isAllFilled) {
-      showSnackBar(context, 'Semua nilai wajib diisi dengan angka',
-          isError: true);
+      showSnackBar(context, 'Semua nilai wajib diisi dengan angka', isError: true);
       return;
     }
 
@@ -87,54 +113,73 @@ class _InputNilaiScreenState extends State<InputNilaiScreen> {
     }
 
     final ok = await _api.submitValues(widget.assessment.id, values);
-    setState(() => _isSaving = false);
-
+    if (!ok) {
+      setState(() => _isSaving = false);
+      if (mounted) showSnackBar(context, 'Gagal menyimpan nilai', isError: true);
+      return;
+    }
+    
+    setState(() {
+      _isSaving = false;
+      _isCalculating = true;
+    });
+    
+    final calcRes = await _api.calculateEdas(widget.assessment.id);
+    setState(() => _isCalculating = false);
+    
     if (mounted) {
-      if (ok) {
-        showSnackBar(context, 'Nilai berhasil disimpan! Menunggu perhitungan EDAS...');
-        Navigator.pop(context);
+      if (calcRes['success']) {
+         showSnackBar(context, 'Kalkulasi berhasil!');
+         // Langsung push ke halaman hasil
+         Navigator.pushReplacement(
+           context,
+           MaterialPageRoute(builder: (_) => EdasResultScreen(assessmentId: widget.assessment.id, title: widget.assessment.title)),
+         );
       } else {
-        showSnackBar(context, 'Gagal menyimpan nilai', isError: true);
+         showSnackBar(context, calcRes['message'] ?? 'Gagal kalkulasi EDAS', isError: true);
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final progress =
-        _totalCount > 0 ? (_filledCount / _totalCount).clamp(0.0, 1.0) : 0.0;
+    final progress = _totalCount > 0 ? (_filledCount / _totalCount).clamp(0.0, 1.0) : 0.0;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          widget.assessment.title,
-          overflow: TextOverflow.ellipsis,
-        ),
+        title: Text(widget.assessment.title, overflow: TextOverflow.ellipsis),
+        actions: [
+          if (_isCompleted)
+            TextButton(
+              onPressed: () {
+                Navigator.pushReplacement(
+                   context,
+                   MaterialPageRoute(builder: (_) => EdasResultScreen(assessmentId: widget.assessment.id, title: widget.assessment.title)),
+                );
+              },
+              child: const Text('Lihat Hasil', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            )
+        ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(52),
           child: Column(
             children: [
-              // Progress bar
               LinearProgressIndicator(
                 value: progress,
                 backgroundColor: AppColors.surfaceVariant,
                 color: _isAllFilled ? AppColors.success : AppColors.primary,
                 minHeight: 3,
               ),
-              // Context row
               Padding(
-                padding: const EdgeInsets.fromLTRB(
-                    AppSpacing.md, 6, AppSpacing.md, 8),
+                padding: const EdgeInsets.fromLTRB(AppSpacing.md, 6, AppSpacing.md, 8),
                 child: Row(
                   children: [
-                    const Icon(Icons.table_chart_outlined,
-                        size: 13, color: AppColors.textTertiary),
+                    const Icon(Icons.table_chart_outlined, size: 13, color: AppColors.textTertiary),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
-                        'Isi nilai untuk setiap alternatif berdasarkan kriteria',
-                        style: const TextStyle(
-                            fontSize: 11, color: AppColors.textTertiary),
+                        _isCompleted ? 'Penilaian selesai. Matriks telah dikalkulasi.' : 'Isi nilai untuk setiap alternatif berdasarkan kriteria',
+                        style: const TextStyle(fontSize: 11, color: AppColors.textTertiary),
                       ),
                     ),
                     Text(
@@ -142,9 +187,7 @@ class _InputNilaiScreenState extends State<InputNilaiScreen> {
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
-                        color: _isAllFilled
-                            ? AppColors.success
-                            : AppColors.primary,
+                        color: _isAllFilled ? AppColors.success : AppColors.primary,
                       ),
                     ),
                   ],
@@ -155,32 +198,22 @@ class _InputNilaiScreenState extends State<InputNilaiScreen> {
         ),
       ),
       body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: AppColors.primary))
+          ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
           : LoadingOverlay(
-              isLoading: _isSaving,
+              isLoading: _isSaving || _isCalculating,
               child: Column(
                 children: [
-                  // ─── Criteria Header ────────────────────────────────
                   Container(
                     color: AppColors.surface,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
                     child: Row(
                       children: [
-                        // Alternative column header
                         Container(
                           width: 130,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 4, vertical: 2),
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                           child: const Text(
                             'ALTERNATIF',
-                            style: TextStyle(
-                              fontSize: 9,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 1.0,
-                              color: AppColors.textTertiary,
-                            ),
+                            style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 1.0, color: AppColors.textTertiary),
                           ),
                         ),
                         ..._criteria.map(
@@ -190,11 +223,7 @@ class _InputNilaiScreenState extends State<InputNilaiScreen> {
                                 Text(
                                   c.name,
                                   textAlign: TextAlign.center,
-                                  style: const TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.textPrimary,
-                                  ),
+                                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
                                 ),
@@ -203,9 +232,7 @@ class _InputNilaiScreenState extends State<InputNilaiScreen> {
                                 const SizedBox(height: 2),
                                 Text(
                                   'W:${c.weight.toStringAsFixed(2)}',
-                                  style: const TextStyle(
-                                      fontSize: 9,
-                                      color: AppColors.textTertiary),
+                                  style: const TextStyle(fontSize: 9, color: AppColors.textTertiary),
                                 ),
                               ],
                             ),
@@ -215,98 +242,61 @@ class _InputNilaiScreenState extends State<InputNilaiScreen> {
                     ),
                   ),
                   const Divider(height: 1),
-
-                  // ─── Input Table ────────────────────────────────────
                   Expanded(
                     child: ListView.builder(
-                      padding:
-                          const EdgeInsets.only(bottom: 100),
+                      padding: const EdgeInsets.only(bottom: 100),
                       itemCount: _alternatives.length,
                       itemBuilder: (ctx, i) {
                         final alt = _alternatives[i];
                         final isEven = i % 2 == 0;
                         return Container(
-                          color: isEven
-                              ? AppColors.surface
-                              : AppColors.background,
+                          color: isEven ? AppColors.surface : AppColors.background,
                           child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: AppSpacing.md,
-                                vertical: AppSpacing.sm),
+                            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
                             child: Row(
                               crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
-                                // Alternative name col
                                 SizedBox(
                                   width: 130,
                                   child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         alt.name,
-                                        style: const TextStyle(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w600,
-                                          color: AppColors.textPrimary,
-                                        ),
+                                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
                                         maxLines: 2,
                                         overflow: TextOverflow.ellipsis,
                                       ),
-                                      const SizedBox(height: 2),
-                                      SourceBadge(source: alt.source),
                                     ],
                                   ),
                                 ),
-                                // Input cells
                                 ..._criteria.map(
                                   (c) => Expanded(
                                     child: Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 3),
+                                      padding: const EdgeInsets.symmetric(horizontal: 3),
                                       child: TextFormField(
-                                        controller:
-                                            _controllers[alt.id]?[c.id],
-                                        keyboardType:
-                                            const TextInputType.numberWithOptions(
-                                                decimal: true),
+                                        controller: _controllers[alt.id]?[c.id],
+                                        readOnly: _isCompleted,
+                                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
                                         textAlign: TextAlign.center,
-                                        style: const TextStyle(
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w600,
-                                          color: AppColors.textPrimary,
-                                        ),
+                                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
                                         decoration: InputDecoration(
                                           hintText: '–',
-                                          hintStyle: const TextStyle(
-                                              fontSize: 13,
-                                              color: AppColors.textTertiary),
-                                          contentPadding:
-                                              const EdgeInsets.symmetric(
-                                                  horizontal: 4, vertical: 8),
+                                          hintStyle: const TextStyle(fontSize: 13, color: AppColors.textTertiary),
+                                          contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
                                           filled: true,
-                                          fillColor: AppColors.surfaceContainerLow,
+                                          fillColor: _isCompleted ? AppColors.surfaceVariant : AppColors.surfaceContainerLow,
                                           border: OutlineInputBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(
-                                                    AppRadius.sm),
-                                            borderSide: const BorderSide(
-                                                color: AppColors.outlineVariant),
+                                            borderRadius: BorderRadius.circular(AppRadius.sm),
+                                            borderSide: const BorderSide(color: AppColors.outlineVariant),
                                           ),
                                           enabledBorder: OutlineInputBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(
-                                                    AppRadius.sm),
-                                            borderSide: const BorderSide(
-                                                color: AppColors.outlineVariant),
+                                            borderRadius: BorderRadius.circular(AppRadius.sm),
+                                            borderSide: const BorderSide(color: AppColors.outlineVariant),
                                           ),
                                           focusedBorder: OutlineInputBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(
-                                                    AppRadius.sm),
-                                            borderSide: const BorderSide(
-                                                color: AppColors.primary,
-                                                width: 1.5),
+                                            borderRadius: BorderRadius.circular(AppRadius.sm),
+                                            borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
                                           ),
                                         ),
                                         onChanged: (_) => setState(() {}),
@@ -324,9 +314,7 @@ class _InputNilaiScreenState extends State<InputNilaiScreen> {
                 ],
               ),
             ),
-
-      // ─── Submit Bottom Bar ──────────────────────────────────────────
-      bottomNavigationBar: Container(
+      bottomNavigationBar: _isCompleted ? null : Container(
         padding: const EdgeInsets.all(AppSpacing.md),
         decoration: const BoxDecoration(
           color: AppColors.surface,
@@ -335,7 +323,6 @@ class _InputNilaiScreenState extends State<InputNilaiScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Progress summary
             Row(
               children: [
                 Expanded(
@@ -344,15 +331,14 @@ class _InputNilaiScreenState extends State<InputNilaiScreen> {
                     child: LinearProgressIndicator(
                       value: progress,
                       backgroundColor: AppColors.surfaceVariant,
-                      color:
-                          _isAllFilled ? AppColors.success : AppColors.primary,
+                      color: _isAllFilled ? AppColors.success : AppColors.primary,
                       minHeight: 6,
                     ),
                   ),
                 ),
                 const SizedBox(width: AppSpacing.sm),
                 Text(
-                  _isAllFilled ? 'Siap dikirim ✓' : '$_filledCount/$_totalCount terisi',
+                  _isAllFilled ? 'Siap dihitung ✓' : '$_filledCount/$_totalCount terisi',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -363,9 +349,10 @@ class _InputNilaiScreenState extends State<InputNilaiScreen> {
             ),
             const SizedBox(height: AppSpacing.sm),
             FilledButton.icon(
-              onPressed: (_isAllFilled && !_isSaving) ? _submit : null,
-              icon: const Icon(Icons.send_outlined, size: 18),
-              label: const Text('Kirim Nilai untuk Dihitung EDAS'),
+              onPressed: (_isAllFilled && !_isSaving && !_isCalculating) ? _submitAndCalculate : null,
+              icon: const Icon(Icons.calculate_outlined, size: 18),
+              label: Text(_isCalculating ? 'Menghitung EDAS...' : 'Simpan & Hitung EDAS'),
+              style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
             ),
           ],
         ),

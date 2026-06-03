@@ -4,6 +4,9 @@ import 'package:provider/provider.dart';
 import '../../config/app_theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../models/assessment.dart';
+import '../../models/alternative.dart';
+import '../../providers/assessment_provider.dart';
+import '../../providers/alternative_provider.dart';
 import '../../services/api_service.dart';
 import '../../widgets/app_widgets.dart';
 import '../auth/login_screen.dart';
@@ -34,86 +37,14 @@ class _UserDashboardState extends State<UserDashboard> {
   }
 
   void _showCreateAssessment() {
-    final titleCtrl = TextEditingController();
-    final descCtrl = TextEditingController();
-    final formKey = GlobalKey<FormState>();
-    final auth = context.read<AuthProvider>();
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.fromLTRB(
-            AppSpacing.md,
-            AppSpacing.md,
-            AppSpacing.md,
-            MediaQuery.of(ctx).viewInsets.bottom + AppSpacing.md),
-        child: Form(
-          key: formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Handle
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: AppSpacing.md),
-                  decoration: BoxDecoration(
-                    color: AppColors.outlineVariant,
-                    borderRadius: BorderRadius.circular(AppRadius.full),
-                  ),
-                ),
-              ),
-              const Text(
-                'Buat Assessment Baru',
-                style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary),
-              ),
-              const SizedBox(height: AppSpacing.md),
-              TextFormField(
-                controller: titleCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Judul Assessment',
-                  hintText: 'contoh: Evaluasi Q1 2025...',
-                ),
-                validator: (v) =>
-                    v == null || v.isEmpty ? 'Judul wajib diisi' : null,
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              TextFormField(
-                controller: descCtrl,
-                maxLines: 2,
-                decoration: const InputDecoration(
-                    labelText: 'Deskripsi (opsional)'),
-              ),
-              const SizedBox(height: AppSpacing.md),
-              FilledButton.icon(
-                onPressed: () async {
-                  if (!formKey.currentState!.validate()) return;
-                  final a = await _api.createAssessment(
-                      titleCtrl.text, descCtrl.text, auth.currentUser!.id);
-                  if (ctx.mounted) Navigator.pop(ctx);
-                  if (mounted && a != null) {
-                    _load();
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => InputNilaiScreen(assessment: a)),
-                    );
-                  }
-                },
-                icon: const Icon(Icons.assignment_add, size: 18),
-                label: const Text('Buat & Mulai Input Nilai'),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => const _CreateAssessmentSheet(),
+    ).then((created) {
+      if (created == true) _load();
+    });
   }
 
   @override
@@ -438,16 +369,10 @@ class _AssessmentCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(AppSpacing.md),
         decoration: BoxDecoration(
           color: const Color(0xFFFFFFFF),
           borderRadius: BorderRadius.circular(AppRadius.md),
-          border: Border(
-            left: BorderSide(color: statusColor, width: 3),
-            right: const BorderSide(color: Color(0xFFCBD5E1)),
-            top: const BorderSide(color: Color(0xFFCBD5E1)),
-            bottom: const BorderSide(color: Color(0xFFCBD5E1)),
-          ),
+          border: Border.all(color: const Color(0xFFCBD5E1)),
           boxShadow: [
             BoxShadow(
               color: const Color(0xFF0F172A).withValues(alpha: 0.08),
@@ -456,63 +381,237 @@ class _AssessmentCard extends StatelessWidget {
             ),
           ],
         ),
-        child: Row(
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: statusColor.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(AppRadius.sm),
-              ),
-              child: Icon(
-                isCompleted
-                    ? Icons.check_circle_outline
-                    : Icons.pending_outlined,
-                color: statusColor,
-                size: 20,
-              ),
-            ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    assessment.title,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                      color: Color(0xFF0F172A),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Left Accent Bar
+                Container(
+                  width: 3,
+                  color: statusColor,
+                ),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppSpacing.md),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: statusColor.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(AppRadius.sm),
+                          ),
+                          child: Icon(
+                            isCompleted
+                                ? Icons.check_circle_outline
+                                : Icons.pending_outlined,
+                            color: statusColor,
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.md),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                assessment.title,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                  color: Color(0xFF0F172A),
+                                ),
+                              ),
+                              if (assessment.description.isNotEmpty) ...[
+                                const SizedBox(height: 2),
+                                Text(
+                                  assessment.description,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Color(0xFF475569),
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.sm),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            StatusBadge(isCompleted: isCompleted),
+                            const SizedBox(height: 4),
+                            const Icon(
+                              Icons.chevron_right,
+                              color: Color(0xFF94A3B8),
+                              size: 16,
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
-                  if (assessment.description.isNotEmpty) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      assessment.description,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF475569),
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                StatusBadge(isCompleted: isCompleted),
-                const SizedBox(height: 4),
-                const Icon(
-                  Icons.chevron_right,
-                  color: Color(0xFF94A3B8),
-                  size: 16,
                 ),
               ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CreateAssessmentSheet extends StatefulWidget {
+  const _CreateAssessmentSheet();
+  @override
+  State<_CreateAssessmentSheet> createState() => _CreateAssessmentSheetState();
+}
+
+class _CreateAssessmentSheetState extends State<_CreateAssessmentSheet> {
+  final _formKey = GlobalKey<FormState>();
+  final _titleCtrl = TextEditingController();
+  final _descCtrl = TextEditingController();
+  
+  List<Alternative> _alternatives = [];
+  final Set<int> _selectedIds = {};
+  bool _loading = false;
+  bool _loadingAlts = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAlternatives();
+  }
+
+  Future<void> _loadAlternatives() async {
+    final altsList = await ApiService().getAlternatives();
+    if (mounted) {
+      setState(() {
+        _alternatives = altsList;
+        _loadingAlts = false;
+      });
+    }
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+    if (_selectedIds.isEmpty) {
+      showSnackBar(context, 'Pilih minimal 1 alternatif', isError: true);
+      return;
+    }
+
+    setState(() => _loading = true);
+    final a = await context.read<AssessmentProvider>().createAssessment(
+      _titleCtrl.text.trim(),
+      _descCtrl.text.trim(),
+      _selectedIds.toList(),
+    );
+    setState(() => _loading = false);
+
+    if (!mounted) return;
+    if (a != null) {
+      Navigator.pop(context, true);
+    } else {
+      showSnackBar(context, 'Gagal membuat assessment', isError: true);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
+      ),
+      padding: EdgeInsets.fromLTRB(
+          AppSpacing.md, AppSpacing.md, AppSpacing.md, MediaQuery.of(context).viewInsets.bottom + AppSpacing.md),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: AppSpacing.md),
+                decoration: BoxDecoration(
+                  color: AppColors.outlineVariant,
+                  borderRadius: BorderRadius.circular(AppRadius.full),
+                ),
+              ),
+            ),
+            const Text(
+              'Buat Assessment Baru',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            TextFormField(
+              controller: _titleCtrl,
+              decoration: const InputDecoration(labelText: 'Judul Assessment *'),
+              validator: (v) => v == null || v.isEmpty ? 'Judul wajib diisi' : null,
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            TextFormField(
+              controller: _descCtrl,
+              maxLines: 2,
+              decoration: const InputDecoration(labelText: 'Deskripsi (opsional)'),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            const Text('Pilih Alternatif (minimal 1)', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+            const SizedBox(height: AppSpacing.xs),
+            
+            // Container for checkboxes
+            Container(
+              constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.3),
+              decoration: BoxDecoration(
+                border: Border.all(color: AppColors.outlineVariant),
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+                color: AppColors.surface,
+              ),
+              child: _loadingAlts
+                  ? const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator()))
+                  : _alternatives.isEmpty
+                      ? const Padding(padding: EdgeInsets.all(16), child: Text('Belum ada alternatif tersedia'))
+                      : ListView.separated(
+                          shrinkWrap: true,
+                          itemCount: _alternatives.length,
+                          separatorBuilder: (_, __) => const Divider(height: 1),
+                          itemBuilder: (ctx, i) {
+                            final alt = _alternatives[i];
+                            return CheckboxListTile(
+                              title: Text(alt.name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                              subtitle: alt.description.isNotEmpty 
+                                  ? Text(alt.description, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11)) 
+                                  : null,
+                              value: _selectedIds.contains(alt.id),
+                              onChanged: (v) {
+                                setState(() {
+                                  if (v == true) _selectedIds.add(alt.id);
+                                  else _selectedIds.remove(alt.id);
+                                });
+                              },
+                              dense: true,
+                              controlAffinity: ListTileControlAffinity.leading,
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+                            );
+                          },
+                        ),
+            ),
+            
+            const SizedBox(height: AppSpacing.md),
+            FilledButton.icon(
+              onPressed: _loading ? null : _submit,
+              icon: _loading ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Icon(Icons.assignment_add, size: 18),
+              label: Text(_loading ? 'Menyimpan...' : 'Buat Assessment'),
             ),
           ],
         ),
@@ -520,4 +619,3 @@ class _AssessmentCard extends StatelessWidget {
     );
   }
 }
-
