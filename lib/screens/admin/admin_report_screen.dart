@@ -65,7 +65,7 @@ class _AdminReportScreenState extends State<AdminReportScreen> {
                     style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
                   subtitle: Text(
-                    'Tanggal: ${assessment.createdAt.split('T')[0]}',
+                    'Oleh: ${assessment.ownerName}',
                     style: const TextStyle(fontSize: 12),
                   ),
                   trailing: const Icon(Icons.arrow_forward_ios, size: 16),

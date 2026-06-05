@@ -102,6 +102,114 @@ class ApiService {
     }
   }
 
+  // ── Register ──────────────────────────────────────────────────────────────
+  Future<Map<String, dynamic>> register(String name, String email, String password, String passwordConfirmation) async {
+    try {
+      final res = await _dio.post('/auth/register', data: {
+        'name': name,
+        'email': email,
+        'password': password,
+        'password_confirmation': passwordConfirmation,
+        'device_name': 'Flutter App',
+      });
+
+      if (res.statusCode == 201 && _isSuccess(res)) {
+        final token    = res.data['data']['token'];
+        final userData = res.data['data']['user'];
+
+        await _storage.write(key: 'token',     value: token);
+        await _storage.write(key: 'user_id',   value: userData['id'].toString());
+        await _storage.write(key: 'user_role',  value: userData['role'].toString());
+        await _storage.write(key: 'user_name',  value: userData['name'].toString());
+
+        return {'success': true, 'user': User.fromJson(userData)};
+      }
+      return {'success': false, 'message': res.data['message'] ?? 'Registrasi gagal'};
+    } on DioException catch (e) {
+      if (e.response == null) {
+        return {'success': false, 'message': 'Gagal terhubung ke server.'};
+      }
+      final msg = e.response?.data?['message']
+          ?? e.response?.data?['errors']?.values?.first?.first
+          ?? 'Registrasi gagal';
+      return {'success': false, 'message': msg};
+    } catch (e) {
+      return {'success': false, 'message': 'Tidak dapat terhubung ke server'};
+    }
+  }
+
+  // ── Forgot Password ───────────────────────────────────────────────────────
+  Future<Map<String, dynamic>> forgotPassword(String email) async {
+    try {
+      final res = await _dio.post('/auth/forgot-password', data: {
+        'email': email,
+      });
+      if (_isSuccess(res)) {
+        return {'success': true, 'message': res.data['message'] ?? 'Kode reset telah dikirim'};
+      }
+      return {'success': false, 'message': res.data['message'] ?? 'Gagal mengirim kode reset'};
+    } on DioException catch (e) {
+      if (e.response == null) {
+        return {'success': false, 'message': 'Gagal terhubung ke server.'};
+      }
+      return {'success': false, 'message': _errorMessage(e, 'Gagal mengirim kode reset')};
+    } catch (e) {
+      return {'success': false, 'message': 'Tidak dapat terhubung ke server'};
+    }
+  }
+
+  Future<Map<String, dynamic>> resetPassword(String email, String token, String password, String passwordConfirmation) async {
+    try {
+      final res = await _dio.post('/auth/reset-password', data: {
+        'email': email,
+        'token': token,
+        'password': password,
+        'password_confirmation': passwordConfirmation,
+      });
+      if (_isSuccess(res)) {
+        return {'success': true, 'message': res.data['message'] ?? 'Password berhasil direset'};
+      }
+      return {'success': false, 'message': res.data['message'] ?? 'Gagal mereset password'};
+    } on DioException catch (e) {
+      if (e.response == null) {
+        return {'success': false, 'message': 'Gagal terhubung ke server.'};
+      }
+      return {'success': false, 'message': _errorMessage(e, 'Gagal mereset password')};
+    } catch (e) {
+      return {'success': false, 'message': 'Tidak dapat terhubung ke server'};
+    }
+  }
+
+  // ── Google Login ──────────────────────────────────────────────────────────
+  Future<Map<String, dynamic>> googleLogin(String idToken) async {
+    try {
+      final res = await _dio.post('/auth/google', data: {
+        'id_token': idToken,
+        'device_name': 'Flutter App',
+      });
+
+      if ((res.statusCode == 200 || res.statusCode == 201) && _isSuccess(res)) {
+        final token    = res.data['data']['token'];
+        final userData = res.data['data']['user'];
+
+        await _storage.write(key: 'token',     value: token);
+        await _storage.write(key: 'user_id',   value: userData['id'].toString());
+        await _storage.write(key: 'user_role',  value: userData['role'].toString());
+        await _storage.write(key: 'user_name',  value: userData['name'].toString());
+
+        return {'success': true, 'user': User.fromJson(userData)};
+      }
+      return {'success': false, 'message': res.data['message'] ?? 'Login Google gagal'};
+    } on DioException catch (e) {
+      if (e.response == null) {
+        return {'success': false, 'message': 'Gagal terhubung ke server.'};
+      }
+      return {'success': false, 'message': _errorMessage(e, 'Login Google gagal')};
+    } catch (e) {
+      return {'success': false, 'message': 'Tidak dapat terhubung ke server'};
+    }
+  }
+
   Future<Map<String, dynamic>> getMe() async {
     try {
       final res = await _dio.get('/auth/me');
@@ -421,15 +529,13 @@ class ApiService {
 
   Future<void> downloadReport(int assessmentId, String format) async {
     try {
-      final token = await _storage.read(key: 'token');
-      final url = Uri.parse('$_baseUrl/assessments/$assessmentId/report/$format');
-      
+      final url = Uri.parse('${AppConfig.baseUrl}/assessments/$assessmentId/report/$format');
       await launchUrl(
         url,
         mode: LaunchMode.externalApplication,
       );
-    } catch (e) {
-      print('Download error: $e');
+    } catch (_) {
+      // Ignore — download may fail if URL is unreachable
     }
   }
 }
