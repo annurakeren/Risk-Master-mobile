@@ -19,8 +19,8 @@ class AlternativeProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<bool> addAlternative(String name, String desc, String source) async {
-    final ok = await _api.createAlternative(name, desc, source);
+  Future<bool> addAlternative(String name, String desc) async {
+    final ok = await _api.createAlternative(name, desc);
     if (ok) await fetchAlternatives();
     return ok;
   }

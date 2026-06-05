@@ -56,23 +56,7 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> register(String name, String email, String password, String role) async {
-    _isLoading = true;
-    _errorMessage = null;
-    notifyListeners();
-
-    final result = await _api.register(name, email, password, role);
-
-    _isLoading = false;
-    if (result['success']) {
-      notifyListeners();
-      return true;
-    } else {
-      _errorMessage = result['message'];
-      notifyListeners();
-      return false;
-    }
-  }
+  // Register tidak tersedia — pembuatan user hanya bisa oleh admin via UserManagement
 
   Future<void> logout() async {
     await _api.logout();

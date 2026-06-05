@@ -6,7 +6,7 @@ import '../../providers/auth_provider.dart';
 import '../../models/assessment.dart';
 import '../../models/alternative.dart';
 import '../../providers/assessment_provider.dart';
-import '../../providers/alternative_provider.dart';
+
 import '../../services/api_service.dart';
 import '../../widgets/app_widgets.dart';
 import '../auth/login_screen.dart';
@@ -508,7 +508,7 @@ class _CreateAssessmentSheetState extends State<_CreateAssessmentSheet> {
     }
 
     setState(() => _loading = true);
-    final a = await context.read<AssessmentProvider>().createAssessment(
+    final res = await context.read<AssessmentProvider>().createAssessment(
       _titleCtrl.text.trim(),
       _descCtrl.text.trim(),
       _selectedIds.toList(),
@@ -516,10 +516,10 @@ class _CreateAssessmentSheetState extends State<_CreateAssessmentSheet> {
     setState(() => _loading = false);
 
     if (!mounted) return;
-    if (a != null) {
+    if (res['success'] == true) {
       Navigator.pop(context, true);
     } else {
-      showSnackBar(context, 'Gagal membuat assessment', isError: true);
+      showSnackBar(context, res['message'] ?? 'Gagal membuat assessment', isError: true);
     }
   }
 
@@ -584,7 +584,7 @@ class _CreateAssessmentSheetState extends State<_CreateAssessmentSheet> {
                       : ListView.separated(
                           shrinkWrap: true,
                           itemCount: _alternatives.length,
-                          separatorBuilder: (_, __) => const Divider(height: 1),
+                          separatorBuilder: (_, _) => const Divider(height: 1),
                           itemBuilder: (ctx, i) {
                             final alt = _alternatives[i];
                             return CheckboxListTile(
@@ -595,8 +595,11 @@ class _CreateAssessmentSheetState extends State<_CreateAssessmentSheet> {
                               value: _selectedIds.contains(alt.id),
                               onChanged: (v) {
                                 setState(() {
-                                  if (v == true) _selectedIds.add(alt.id);
-                                  else _selectedIds.remove(alt.id);
+                                  if (v == true) {
+                                    _selectedIds.add(alt.id);
+                                  } else {
+                                    _selectedIds.remove(alt.id);
+                                  }
                                 });
                               },
                               dense: true,

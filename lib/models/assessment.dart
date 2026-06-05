@@ -26,7 +26,8 @@ class Assessment {
 
   factory Assessment.fromJson(Map<String, dynamic> json) => Assessment(
     id: json['id'],
-    userId: json['user_id'] ?? json['owner_id'] ?? 0,
+    // AssessmentResource tidak expose user_id langsung, pakai owner.id
+    userId: json['owner']?['id'] ?? json['user_id'] ?? 0,
     title: json['title'] ?? '',
     description: json['description'] ?? '',
     status: json['status'] ?? 'draft',
@@ -34,7 +35,7 @@ class Assessment {
     expectedCount: json['expected_count'] ?? 0,
     filledCount: json['filled_count'] ?? 0,
     isComplete: json['is_complete'] == true || json['is_complete'] == 1,
-    ownerName: json['owner'] != null ? json['owner']['name'] ?? '' : '',
+    ownerName: json['owner']?['name'] ?? '',
   );
 
   bool get isCompleted => status == 'completed';
@@ -76,6 +77,8 @@ class AlternativeValue {
 class EdasResult {
   final int alternativeId;
   final String alternativeName;
+  // pda & nda: hanya ada di response POST /calculate
+  // GET /results tidak mengembalikan field ini
   final double pda;
   final double nda;
   final double sp;
@@ -89,8 +92,8 @@ class EdasResult {
   EdasResult({
     required this.alternativeId,
     required this.alternativeName,
-    required this.pda,
-    required this.nda,
+    this.pda = 0,
+    this.nda = 0,
     required this.sp,
     required this.sn,
     required this.nsp,
@@ -101,8 +104,9 @@ class EdasResult {
   });
 
   factory EdasResult.fromJson(Map<String, dynamic> json) => EdasResult(
-    alternativeId: json['alternative_id'] ?? json['alternative']?['id'] ?? 0,
-    alternativeName: json['alternative_name'] ?? json['alternative']?['name'] ?? '',
+    // GET /results: { rank, alternative: {id, name, ...}, sp, sn, nsp, nsn, as_score, ... }
+    alternativeId: json['alternative']?['id'] ?? json['alternative_id'] ?? 0,
+    alternativeName: json['alternative']?['name'] ?? json['alternative_name'] ?? '',
     pda: (json['pda'] as num?)?.toDouble() ?? 0,
     nda: (json['nda'] as num?)?.toDouble() ?? 0,
     sp: (json['sp'] as num?)?.toDouble() ?? 0,

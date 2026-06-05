@@ -8,6 +8,7 @@ import '../auth/login_screen.dart';
 import 'user_management_screen.dart';
 import 'criteria_screen.dart';
 import 'alternative_screen.dart';
+import 'admin_report_screen.dart';
 
 class AdminDashboard extends StatelessWidget {
   const AdminDashboard({super.key});
@@ -172,21 +173,10 @@ class AdminDashboard extends StatelessWidget {
                   title: 'Laporan EDAS',
                   subtitle: 'Lihat hasil perhitungan',
                   accentColor: AppColors.tertiary,
-                  onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Row(
-                        children: [
-                          Icon(Icons.info_outline,
-                              color: Colors.white, size: 16),
-                          SizedBox(width: 8),
-                          Text('Tersedia setelah backend siap'),
-                        ],
-                      ),
-                      backgroundColor: AppColors.textPrimary,
-                      behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppRadius.sm),
-                      ),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const AdminReportScreen(),
                     ),
                   ),
                 ),

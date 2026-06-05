@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../config/app_theme.dart';
 import '../../providers/auth_provider.dart';
-import 'register_screen.dart';
+
 import '../admin/admin_dashboard.dart';
 import '../user/user_dashboard.dart';
 
@@ -162,29 +162,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     )
                         : const Text('Masuk'),
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-
-                  // Register link
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text(
-                        'Belum punya akun?',
-                        style: TextStyle(
-                            color: AppColors.textSecondary, fontSize: 14),
-                      ),
-                      TextButton(
-                        onPressed: () =>
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const RegisterScreen(),
-                              ),
-                            ),
-                        child: const Text('Daftar Sekarang'),
-                      ),
-                    ],
                   ),
                   const SizedBox(height: AppSpacing.lg),
                 ],

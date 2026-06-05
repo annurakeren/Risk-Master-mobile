@@ -3,12 +3,13 @@ import 'package:flutter/foundation.dart';
 class AppConfig {
   // Ganti IP ini dengan IPv4 laptop kamu (bisa cek pakai command 'ipconfig' di CMD)
   // Contoh: '192.168.1.10'
-  static const String _localIp = '192.168.1.5'; 
+  // IP WiFi laptop kamu (dari ipconfig)
+  static const String _localIp = '10.24.38.225';
 
-  // URL Backend untuk Production (bisa diganti nanti setelah deploy)
+  // URL Backend untuk Production (isi setelah deploy ke Railway)
   static const String _productionUrl = 'https://api.riskmaster.com/api';
 
-  // Toggle mode production
+  // Toggle mode: false = pakai local, true = pakai production
   static const bool isProduction = false;
 
   static String get baseUrl {

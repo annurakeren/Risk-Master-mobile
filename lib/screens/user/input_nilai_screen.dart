@@ -38,33 +38,54 @@ class _InputNilaiScreenState extends State<InputNilaiScreen> {
   Future<void> _load() async {
     setState(() => _isLoading = true);
     
-    final detail = await _api.getAssessmentDetail(widget.assessment.id);
-    _assessmentData = detail;
+    // getAssessmentDetail returns {success, data: {assessment, criteria, matrix, ...}}
+    final res = await _api.getAssessmentDetail(widget.assessment.id);
     
-    if (detail.isNotEmpty && detail['assessment'] != null) {
-      final altsList = detail['assessment']['alternatives'] as List? ?? [];
-      _alternatives = altsList.map((e) => Alternative.fromJson(e)).toList();
-    }
-    
-    _criteria = await _api.getCriteria();
-
-    for (final alt in _alternatives) {
-      _controllers[alt.id] = {};
-      for (final c in _criteria) {
-        _controllers[alt.id]![c.id] = TextEditingController();
+    if (res['success'] == true) {
+      final detail = res['data'] as Map<String, dynamic>;
+      _assessmentData = detail;
+      
+      // Ambil alternatif dari assessment.alternatives
+      final assessmentData = detail['assessment'];
+      if (assessmentData != null) {
+        final altsList = assessmentData['alternatives'] as List? ?? [];
+        _alternatives = altsList.map((e) => Alternative.fromJson(e)).toList();
       }
-    }
-    
-    // Auto-fill existing values if any
-    if (detail['values'] != null) {
-       for(var val in detail['values']) {
-          final aId = val['alternative_id'];
-          final cId = val['criteria_id'];
-          final v = val['value'];
-          if (_controllers.containsKey(aId) && _controllers[aId]!.containsKey(cId)) {
-             _controllers[aId]![cId]!.text = v.toString();
+      
+      // Ambil kriteria dari detail.criteria
+      final criteriaList = detail['criteria'] as List? ?? [];
+      if (criteriaList.isNotEmpty) {
+        _criteria = criteriaList.map((e) => Criteria.fromJson(e)).toList();
+      } else {
+        _criteria = await _api.getCriteria();
+      }
+
+      for (final alt in _alternatives) {
+        _controllers[alt.id] = {};
+        for (final c in _criteria) {
+          _controllers[alt.id]![c.id] = TextEditingController();
+        }
+      }
+      
+      // Auto-fill existing values from matrix
+      // matrix format: { "alt_id": { "crit_id": value } }
+      final matrix = detail['matrix'];
+      if (matrix != null && matrix is Map) {
+        matrix.forEach((altIdStr, critMap) {
+          final aId = int.tryParse(altIdStr.toString());
+          if (aId != null && critMap is Map) {
+            critMap.forEach((critIdStr, value) {
+              final cId = int.tryParse(critIdStr.toString());
+              if (cId != null && _controllers.containsKey(aId) && _controllers[aId]!.containsKey(cId)) {
+                _controllers[aId]![cId]!.text = value.toString();
+              }
+            });
           }
-       }
+        });
+      }
+    } else {
+      // Fallback: load criteria separately if detail failed
+      _criteria = await _api.getCriteria();
     }
     
     setState(() => _isLoading = false);
@@ -112,10 +133,11 @@ class _InputNilaiScreenState extends State<InputNilaiScreen> {
       }
     }
 
-    final ok = await _api.submitValues(widget.assessment.id, values);
-    if (!ok) {
+    // submitValues sekarang return Map {success, data, message}
+    final submitRes = await _api.submitValues(widget.assessment.id, values);
+    if (submitRes['success'] != true) {
       setState(() => _isSaving = false);
-      if (mounted) showSnackBar(context, 'Gagal menyimpan nilai', isError: true);
+      if (mounted) showSnackBar(context, submitRes['message'] ?? 'Gagal menyimpan nilai', isError: true);
       return;
     }
     
@@ -128,7 +150,7 @@ class _InputNilaiScreenState extends State<InputNilaiScreen> {
     setState(() => _isCalculating = false);
     
     if (mounted) {
-      if (calcRes['success']) {
+      if (calcRes['success'] == true) {
          showSnackBar(context, 'Kalkulasi berhasil!');
          // Langsung push ke halaman hasil
          Navigator.pushReplacement(

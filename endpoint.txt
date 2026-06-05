@@ -1,0 +1,364 @@
+Berdasarkan routes/api.php dan semua controller yang sudah saya baca:Berikut semua endpoint lengkap beserta request body dan response-nya:
+
+Base URL
+http://your-domain.com/api
+
+Headers wajib untuk semua request
+Content-Type: application/json
+Accept: application/json
+Authorization: Bearer {token}   ? semua endpoint kecuali login
+
+
+AUTH
+POST /api/auth/login
+Public — tidak butuh token
+// Request body
+{
+    "email": "admin@example.com",
+    "password": "password",
+    "device_name": "Flutter App"   // opsional
+}
+
+// Response 200
+{
+    "status": "success",
+    "message": "Login berhasil.",
+    "data": {
+        "token": "1|abc123...",
+        "user": {
+            "id": 1,
+            "name": "Administrator",
+            "email": "admin@example.com",
+            "role": "admin"
+        }
+    }
+}
+
+POST /api/auth/logout
+// Response 200
+{ "status": "success", "message": "Logout berhasil." }
+
+POST /api/auth/logout-all
+// Logout dari semua device
+{ "status": "success", "message": "Semua sesi berhasil dihapus." }
+
+GET /api/auth/me
+// Response 200
+{
+    "status": "success",
+    "data": {
+        "id": 1,
+        "name": "Administrator",
+        "email": "admin@example.com",
+        "role": "admin"
+    }
+}
+
+
+USERS (admin only)
+GET /api/users
+Query params: ?search=keyword&role=admin|user&per_page=15&page=1
+
+// Response 200
+{
+    "status": "success",
+    "data": {
+        "users": [
+            { "id": 1, "name": "Admin", "email": "admin@...", "role": "admin", "created_at": "..." }
+        ],
+        "meta": { "current_page": 1, "last_page": 1, "total": 5, "per_page": 15 }
+    }
+}
+
+POST /api/users
+// Request body
+{
+    "name": "John Doe",
+    "email": "john@example.com",
+    "password": "password123",
+    "role": "user"   // "user" | "admin"
+}
+
+GET /api/users/{id}
+PUT /api/users/{id}
+// Semua field opsional (sometimes)
+{
+    "name": "John Updated",
+    "email": "john@example.com",
+    "password": "newpassword",   // opsional
+    "role": "admin"
+}
+
+DELETE /api/users/{id}
+{ "status": "success", "message": "User berhasil dihapus." }
+
+
+CRITERIA (admin only)
+GET /api/criteria
+// Response 200
+{
+    "status": "success",
+    "data": {
+        "criteria": [
+            {
+                "id": 1,
+                "name": "Efektivitas Mitigasi",
+                "description": "...",
+                "type": "benefit",
+                "type_label": "Benefit",
+                "weight": 0.3,
+                "weight_percent": "30.0%"
+            }
+        ],
+        "total_weight": 1.0,
+        "weight_valid": true
+    }
+}
+
+POST /api/criteria
+{
+    "name": "Efektivitas Mitigasi",
+    "description": "Penjelasan kriteria",
+    "type": "benefit",   // "benefit" | "cost"
+    "weight": 0.30
+}
+
+GET /api/criteria/{id}
+PUT /api/criteria/{id}
+DELETE /api/criteria/{id}
+
+ALTERNATIVES
+GET /api/alternatives
+Query params: ?search=keyword&source=admin|user&per_page=20&page=1
+
+// Response 200
+{
+    "status": "success",
+    "data": {
+        "alternatives": [
+            {
+                "id": 1,
+                "name": "Web Application Firewall",
+                "description": "...",
+                "source": "admin",
+                "source_label": "Template Admin",
+                "creator": { "id": 1, "name": "Administrator" },
+                "created_at": "...",
+                "updated_at": "..."
+            }
+        ],
+        "meta": { "current_page": 1, "last_page": 1, "total": 8, "per_page": 20 }
+    }
+}
+
+POST /api/alternatives
+{
+    "name": "Nama Alternatif",
+    "description": "Deskripsi opsional"
+}
+// source otomatis: admin jika role=admin, user jika role=user
+
+GET /api/alternatives/{id}
+PUT /api/alternatives/{id}
+{
+    "name": "Nama Baru",
+    "description": "Deskripsi baru"
+}
+// Hanya bisa update milik sendiri, kecuali admin
+
+DELETE /api/alternatives/{id}
+
+ASSESSMENTS
+GET /api/assessments
+Query params: ?status=draft|completed&search=keyword&per_page=10&page=1
+// User biasa hanya lihat milik sendiri, admin lihat semua
+
+// Response 200
+{
+    "status": "success",
+    "data": {
+        "assessments": [
+            {
+                "id": 1,
+                "title": "Analisis Risiko Q3",
+                "description": "...",
+                "status": "draft",
+                "status_label": "Draft",
+                "alternatives_count": 5,
+                "owner": { "id": 1, "name": "Admin", "email": "admin@..." },
+                "created_at": "...",
+                "updated_at": "..."
+            }
+        ],
+        "meta": { "current_page": 1, "last_page": 1, "total": 3, "per_page": 10 }
+    }
+}
+
+POST /api/assessments
+{
+    "title": "Analisis Risiko Q3 2026",
+    "description": "Konteks assessment",
+    "alternative_ids": [1, 2, 3]   // opsional
+}
+
+GET /api/assessments/{id}
+// Response 200 — detail lengkap dengan matrix
+{
+    "status": "success",
+    "data": {
+        "assessment": { "id": 1, "title": "...", "status": "draft", ... },
+        "criteria": [
+            { "id": 1, "name": "Efektivitas", "type": "benefit", "weight": 0.3 }
+        ],
+        "matrix": {
+            "1": { "1": 0.8, "2": 0.5 },   // alt_id: { crit_id: value }
+            "2": { "1": 0.6, "2": 0.9 }
+        },
+        "is_complete": false,
+        "filled_count": 4,
+        "expected_count": 10
+    }
+}
+
+PUT /api/assessments/{id}
+{
+    "title": "Judul Baru",
+    "description": "Deskripsi baru",
+    "alternative_ids": [1, 2, 3, 4]   // sync — replace semua
+}
+
+DELETE /api/assessments/{id}
+
+aSSESSMENT — NILAI MATRIX
+GET /api/assessments/{id}/values
+// Response 200
+{
+    "status": "success",
+    "data": {
+        "values": [
+            {
+                "alternative_id": 1,
+                "alternative": "Web Application Firewall",
+                "criteria_id": 1,
+                "criteria": "Efektivitas Mitigasi",
+                "value": 0.8
+            }
+        ],
+        "filled_count": 4,
+        "expected_count": 10,
+        "is_complete": false
+    }
+}
+
+POST /api/assessments/{id}/values
+// Request body — bisa kirim sebagian, upsert otomatis
+{
+    "values": [
+        { "alternative_id": 1, "criteria_id": 1, "value": 0.8 },
+        { "alternative_id": 1, "criteria_id": 2, "value": 0.5 },
+        { "alternative_id": 2, "criteria_id": 1, "value": 0.6 }
+    ]
+}
+
+// Response 200
+{
+    "status": "success",
+    "message": "Nilai berhasil disimpan.",
+    "data": {
+        "filled_count": 8,
+        "expected_count": 10,
+        "is_complete": false
+    }
+}
+
+
+ASSESSMENT — ALTERNATIF
+POST /api/assessments/{id}/alternatives
+// Tambah alternatif ke assessment (tanpa hapus yang sudah ada)
+{ "alternative_ids": [4, 5] }
+
+DELETE /api/assessments/{id}/alternatives/{alternative_id}
+// Lepas satu alternatif dari assessment + hapus nilai matrix-nya
+{ "status": "success", "message": "Alternatif berhasil dilepas." }
+
+
+EDAS — KALKULASI & HASIL
+POST /api/assessments/{id}/calculate
+// Tidak butuh request body
+// Assessment harus: matrix lengkap, total bobot = 1.0
+
+// Response 200
+{
+    "status": "success",
+    "message": "Kalkulasi EDAS berhasil. Ditemukan 5 alternatif.",
+    "data": {
+        "assessment_id": 1,
+        "results": [
+            {
+                "rank": 1,
+                "alternative": { "id": 3, "name": "SIEM", "description": "..." },
+                "pda": 0.1234,
+                "nda": 0.0000,
+                "sp": 0.0987,
+                "sn": 0.0000,
+                "nsp": 1.0000,
+                "nsn": 1.0000,
+                "as_score": 1.0000,
+                "as_formatted": "1.0000",
+                "quality_label": "Sangat Direkomendasikan",
+                "quality_color": "bg-green-50 text-green-700 border border-green-200"
+            }
+        ]
+    }
+}
+
+GET /api/assessments/{id}/results
+// Response 200
+{
+    "status": "success",
+    "data": {
+        "assessment": { "id": 1, "title": "...", "status": "completed" },
+        "results": [ /* sama seperti calculate */ ],
+        "top_recommendation": "Implementasi SIEM"
+    }
+}
+
+
+REPORT
+GET /api/assessments/{id}/report/pdf
+// Response: file download PDF (application/pdf)
+// Langsung buka di browser atau download
+
+GET /api/assessments/{id}/report/excel
+// Response: file download Excel (application/vnd.openxmlformats...)
+
+
+Error Responses (semua endpoint)
+// 401 Unauthenticated
+{ "status": "error", "message": "Unauthenticated. Token tidak valid atau sudah kadaluarsa." }
+
+// 403 Forbidden
+{ "status": "error", "message": "Akses ditolak." }
+
+// 404 Not Found
+{ "status": "error", "message": "Resource tidak ditemukan." }
+
+// 422 Validation Error
+{
+    "status": "error",
+    "message": "Data tidak valid.",
+    "errors": {
+        "email": ["Email wajib diisi."],
+        "password": ["Password wajib diisi."]
+    }
+}
+
+// 429 Too Many Requests
+{ "status": "error", "message": "Terlalu banyak percobaan. Coba lagi dalam 60 detik." }
+
+// 500 Server Error
+{ "status": "error", "message": "Terjadi kesalahan server." }
+
+
+Ringkasan endpoint untuk Flutter
+MethodEndpointAuthRolePOST/api/auth/login?-POST/api/auth/logout?-POST/api/auth/logout-all?-GET/api/auth/me?-GET/POST/api/users?AdminGET/PUT/DELETE/api/users/{id}?AdminGET/POST/api/criteria?AdminGET/PUT/DELETE/api/criteria/{id}?AdminGET/POST/api/alternatives?AllGET/PUT/DELETE/api/alternatives/{id}?AllGET/POST/api/assessments?AllGET/PUT/DELETE/api/assessments/{id}?AllGET/POST/api/assessments/{id}/values?AllPOST/api/assessments/{id}/alternatives?AllDELETE/api/assessments/{id}/alternatives/{alt_id}?AllPOST/api/assessments/{id}/calculate?AllGET/api/assessments/{id}/results?AllGET/api/assessments/{id}/report/pdf?AllGET/api/assessments/{id}/report/excel?All

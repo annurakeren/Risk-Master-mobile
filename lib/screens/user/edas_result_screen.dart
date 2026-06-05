@@ -74,6 +74,18 @@ class _EdasResultScreenState extends State<EdasResultScreen> {
             Text(widget.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
           ],
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.picture_as_pdf),
+            tooltip: 'Download PDF',
+            onPressed: () => ApiService().downloadReport(widget.assessmentId, 'pdf'),
+          ),
+          IconButton(
+            icon: const Icon(Icons.table_chart),
+            tooltip: 'Download Excel',
+            onPressed: () => ApiService().downloadReport(widget.assessmentId, 'excel'),
+          ),
+        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: AppColors.primary))

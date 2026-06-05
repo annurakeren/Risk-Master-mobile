@@ -36,7 +36,6 @@ class _AlternativeScreenState extends State<AlternativeScreen> {
     final formKey = GlobalKey<FormState>();
     final isEdit = alt != null;
     final auth = context.read<AuthProvider>();
-    final source = auth.isAdmin ? 'admin' : 'user';
 
     showModalBottomSheet(
       context: context,
@@ -124,7 +123,7 @@ class _AlternativeScreenState extends State<AlternativeScreen> {
                         alt.id, nameCtrl.text, descCtrl.text);
                   } else {
                     ok = await _api.createAlternative(
-                        nameCtrl.text, descCtrl.text, source);
+                        nameCtrl.text, descCtrl.text);
                   }
                   if (ctx.mounted) Navigator.pop(ctx);
                   if (mounted) {
