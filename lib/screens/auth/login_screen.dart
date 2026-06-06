@@ -19,7 +19,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   bool _obscure = true;
-  bool _rememberMe = false;
   bool _biometricAvailable = false;
   double _uiOpacity = 0.0; // Animasi mulai dari transparan
 
@@ -146,28 +145,28 @@ class _LoginScreenState extends State<LoginScreen> {
                     width: 64,
                     height: 64,
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppColors.primary,
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.03),
-                          blurRadius: 10,
+                          color: AppColors.primary.withValues(alpha: 0.3),
+                          blurRadius: 12,
                           offset: const Offset(0, 4),
                         )
                       ]
                     ),
                     child: const Center(
-                      child: Icon(Icons.shield, size: 36, color: Color(0xFF0F172A)),
+                      child: Icon(Icons.security, size: 36, color: Colors.white),
                     ),
                   ),
                   const SizedBox(height: 16),
                   const Text(
-                    'RISKGUARDIAN',
+                    'Risk Master',
                     style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 3.0,
-                      color: Color(0xFF0F172A),
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.5,
+                      color: AppColors.primary,
                     ),
                   ),
                   const SizedBox(height: 32),
@@ -193,25 +192,12 @@ class _LoginScreenState extends State<LoginScreen> {
                         children: [
                           Center(
                             child: const Text(
-                              'Selamat Datang\nKembali',
+                              'Selamat Datang Kembali',
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
-                                color: Color(0xFF0F172A),
-                                height: 1.2,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          Center(
-                            child: const Text(
-                              'Silakan masukkan kredensial Anda untuk mengakses dasbor.',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Color(0xFF475569),
-                                height: 1.5,
+                                color: AppColors.textPrimary,
                               ),
                             ),
                           ),
@@ -221,10 +207,9 @@ class _LoginScreenState extends State<LoginScreen> {
                           const Text(
                             'EMAIL INSTANSI',
                             style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 1.0,
-                              color: Color(0xFF475569),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textSecondary,
                             ),
                           ),
                           const SizedBox(height: 8),
@@ -232,10 +217,9 @@ class _LoginScreenState extends State<LoginScreen> {
                             controller: _emailCtrl,
                             keyboardType: TextInputType.emailAddress,
                             textInputAction: TextInputAction.next,
-                            style: const TextStyle(fontSize: 15),
                             decoration: const InputDecoration(
                               hintText: 'nama@instansi.go.id',
-                              prefixIcon: Icon(Icons.mail_outline, size: 20),
+                              prefixIcon: Icon(Icons.mail_outline),
                             ),
                             validator: (v) =>
                                 v == null || !v.contains('@') ? 'Email tidak valid' : null,
@@ -249,10 +233,9 @@ class _LoginScreenState extends State<LoginScreen> {
                               const Text(
                                 'KATA SANDI',
                                 style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: 1.0,
-                                  color: Color(0xFF475569),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.textSecondary,
                                 ),
                               ),
                               GestureDetector(
@@ -264,8 +247,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                   'Lupa Kata Sandi?',
                                   style: TextStyle(
                                     fontSize: 12,
-                                    fontWeight: FontWeight.w700,
-                                    color: Color(0xFF0F172A),
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.primary,
                                   ),
                                 ),
                               ),
@@ -276,16 +259,13 @@ class _LoginScreenState extends State<LoginScreen> {
                             controller: _passCtrl,
                             obscureText: _obscure,
                             textInputAction: TextInputAction.done,
-                            style: const TextStyle(fontSize: 15, letterSpacing: 2.0),
                             onFieldSubmitted: (_) => _login(),
                             decoration: InputDecoration(
                               hintText: '••••••••',
-                              hintStyle: const TextStyle(letterSpacing: 2.0),
-                              prefixIcon: const Icon(Icons.lock_outline, size: 20),
+                              prefixIcon: const Icon(Icons.lock_outline),
                               suffixIcon: IconButton(
                                 icon: Icon(
                                   _obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                                  size: 20,
                                 ),
                                 onPressed: () => setState(() => _obscure = !_obscure),
                               ),
@@ -293,54 +273,20 @@ class _LoginScreenState extends State<LoginScreen> {
                             validator: (v) =>
                                 v == null || v.isEmpty ? 'Password tidak boleh kosong' : null,
                           ),
-                          const SizedBox(height: 16),
-
-                          // ── Remember Me ─────────────────────────
-                          Row(
-                            children: [
-                              SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: Checkbox(
-                                  value: _rememberMe,
-                                  onChanged: (val) => setState(() => _rememberMe = val ?? false),
-                                  activeColor: const Color(0xFF0F172A),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                                  side: const BorderSide(color: Color(0xFFCBD5E1)),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              const Expanded(
-                                child: Text(
-                                  'Ingat perangkat ini selama 30 hari',
-                                  style: TextStyle(fontSize: 13, color: Color(0xFF475569)),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
                           const SizedBox(height: 32),
 
                           // ── Login Button ────────────────────────
                           FilledButton(
                             onPressed: auth.isLoading ? null : _login,
-                            style: FilledButton.styleFrom(
-                              backgroundColor: const Color(0xFF0A0A0A), // Solid black
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              minimumSize: const Size(double.infinity, 52),
-                              textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, letterSpacing: 1.0),
-                            ),
                             child: auth.isLoading
                                 ? const SizedBox(
                                     height: 20,
                                     width: 20,
                                     child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                                   )
-                                : const Text('MASUK KE SISTEM'),
+                                : const Text('MASUK'),
                           ),
-                          const SizedBox(height: 32),
+                          const SizedBox(height: 24),
 
                           // ── Register Link ───────────────────────
                           Wrap(
@@ -348,8 +294,8 @@ class _LoginScreenState extends State<LoginScreen> {
                             crossAxisAlignment: WrapCrossAlignment.center,
                             children: [
                               const Text(
-                                'Belum memiliki akses? ',
-                                style: TextStyle(fontSize: 13, color: Color(0xFF475569)),
+                                'Belum memiliki akun? ',
+                                style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
                               ),
                               GestureDetector(
                                 onTap: () => Navigator.push(
@@ -357,12 +303,11 @@ class _LoginScreenState extends State<LoginScreen> {
                                   MaterialPageRoute(builder: (_) => const RegisterScreen()),
                                 ),
                                 child: const Text(
-                                  'AJUKAN PENDAFTARAN',
+                                  'Register sekarang',
                                   style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w800,
-                                    letterSpacing: 0.5,
-                                    color: Color(0xFF0F172A),
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.primary,
                                   ),
                                 ),
                               ),
@@ -396,21 +341,19 @@ class _LoginScreenState extends State<LoginScreen> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               // Google Button
-                              OutlinedButton(
+                              OutlinedButton.icon(
                                 onPressed: auth.isLoading ? null : _googleLogin,
                                 style: OutlinedButton.styleFrom(
-                                  backgroundColor: Colors.white,
-                                  minimumSize: const Size(0, 48), // Fix infinite width
-                                  side: const BorderSide(color: Color(0xFFE2E8F0)),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                                  minimumSize: const Size(0, 48),
+                                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                                 ),
-                                child: Image.network(
-                                  'https://www.google.com/favicon.ico',
+                                icon: Image.network(
+                                  'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/120px-Google_%22G%22_logo.svg.png',
                                   width: 20,
                                   height: 20,
-                                  errorBuilder: (ctx, err, st) => const Icon(Icons.g_mobiledata, color: Colors.black),
+                                  errorBuilder: (ctx, err, st) => const Icon(Icons.g_mobiledata, color: Colors.black, size: 24),
                                 ),
+                                label: const Text('Google', style: TextStyle(color: AppColors.textPrimary)),
                               ),
                               if (_biometricAvailable) ...[
                                 const SizedBox(width: 16),
@@ -418,13 +361,10 @@ class _LoginScreenState extends State<LoginScreen> {
                                 OutlinedButton(
                                   onPressed: auth.isLoading ? null : _biometricLogin,
                                   style: OutlinedButton.styleFrom(
-                                    backgroundColor: Colors.white,
                                     minimumSize: const Size(0, 48), // Fix infinite width
-                                    side: const BorderSide(color: Color(0xFFE2E8F0)),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                                   ),
-                                  child: const Icon(Icons.fingerprint, color: Color(0xFF0F172A)),
+                                  child: const Icon(Icons.fingerprint, color: AppColors.primary),
                                 ),
                               ]
                             ],

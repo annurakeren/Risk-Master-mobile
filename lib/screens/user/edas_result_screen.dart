@@ -181,6 +181,7 @@ class _EdasResultScreenState extends State<EdasResultScreen> {
                             children: [
                               // Header Rank & Name
                               Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Container(
                                     width: 36,
@@ -202,21 +203,27 @@ class _EdasResultScreenState extends State<EdasResultScreen> {
                                   ),
                                   const SizedBox(width: AppSpacing.md),
                                   Expanded(
-                                    child: Text(
-                                      r.alternativeName,
-                                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: AppColors.textPrimary),
-                                    ),
-                                  ),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color: color.withValues(alpha: 0.1),
-                                      borderRadius: BorderRadius.circular(AppRadius.full),
-                                      border: Border.all(color: color.withValues(alpha: 0.3)),
-                                    ),
-                                    child: Text(
-                                      r.qualityLabel,
-                                      style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.w700),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          r.alternativeName,
+                                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: AppColors.textPrimary),
+                                        ),
+                                        const SizedBox(height: 6),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: color.withValues(alpha: 0.1),
+                                            borderRadius: BorderRadius.circular(AppRadius.full),
+                                            border: Border.all(color: color.withValues(alpha: 0.3)),
+                                          ),
+                                          child: Text(
+                                            r.qualityLabel,
+                                            style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.w700),
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 ],
@@ -545,7 +552,7 @@ class _AiRecommendationSheetState extends State<_AiRecommendationSheet>
           Container(
             width: 64,
             height: 64,
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color: AppColors.errorContainer,
               shape: BoxShape.circle,
             ),
@@ -557,10 +564,14 @@ class _AiRecommendationSheetState extends State<_AiRecommendationSheet>
             style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
           ),
           const SizedBox(height: 8),
-          Text(
-            _error!,
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 13, color: AppColors.textTertiary),
+          Flexible(
+            child: SingleChildScrollView(
+              child: Text(
+                _error!,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 13, color: AppColors.textTertiary),
+              ),
+            ),
           ),
           const SizedBox(height: 20),
           FilledButton.icon(
@@ -577,7 +588,7 @@ class _AiRecommendationSheetState extends State<_AiRecommendationSheet>
             label: const Text('Coba Lagi'),
             style: FilledButton.styleFrom(backgroundColor: const Color(0xFF7C3AED)),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 16),
         ],
       ),
     );

@@ -101,6 +101,7 @@ dependencies:
   material_design_icons_flutter: ^7.0.7296
   google_fonts: ^6.1.0          # Font Inter
   cupertino_icons: ^1.0.8
+  google_generative_ai: ^0.4.7  # Gemini AI SDK
 ```
 
 ---
@@ -372,18 +373,21 @@ Tidak ada link ke register (karena fitur tidak tersedia).
 - Greeting card dengan inisial nama
 - Stats row: Selesai / Draft / Total assessment
 - Tombol "Lihat Alternatif" & "Assessment Baru"
-- List assessment dengan `_AssessmentCard`
+- List assessment dengan `_AssessmentCard` (dilengkapi PopupMenu untuk **Edit** & **Hapus**)
 - Pull-to-refresh
 - `_CreateAssessmentSheet` (bottom sheet): form judul + deskripsi + checkbox pilih alternatif
+- Jika status assessment `completed`, menekan kartu akan langsung membuka **`EdasResultScreen`** (Laporan Hasil).
 
 **`InputNilaiScreen`**
 - Menerima `Assessment` object
 - Load detail via `getAssessmentDetail()` → unwrap `{success, data}`
+- Menampilkan kotak **"Panduan Penilaian"** beserta legenda Kriteria (C1, C2, dst)
 - Ambil kriteria dari detail response (fallback: `getCriteria()`)
+- Header matriks disingkat menjadi C1, C2 (warna hijau untuk Benefit, merah untuk Cost)
 - Grid matrix: baris = alternatif, kolom = kriteria
 - **Auto-fill** dari `data.matrix` (format `{altId: {critId: value}}`)
 - Progress bar + counter `filledCount / totalCount`
-- Jika status `completed`: matrix read-only + tombol "Lihat Hasil"
+- Jika status `completed`: matrix read-only
 - Tombol "Simpan & Hitung EDAS": submit values → calculate → push ke EdasResultScreen
 
 **`EdasResultScreen`**
@@ -480,6 +484,7 @@ UserDashboard
 EdasResultScreen
   ← GET /assessments/{id}/results
   └─ Tampilkan ranking, skor, label kualitas, top recommendation
+  └─ AI Insight (menggunakan google_generative_ai dengan model `gemini-flash-latest`)
 ```
 
 ### Alur Admin — Setup Kriteria & Alternatif

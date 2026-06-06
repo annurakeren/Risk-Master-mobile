@@ -225,6 +225,42 @@ class _InputNilaiScreenState extends State<InputNilaiScreen> {
               isLoading: _isSaving || _isCalculating,
               child: Column(
                 children: [
+                  // ─── Panduan Pengisian ───
+                  Container(
+                    margin: const EdgeInsets.all(AppSpacing.md),
+                    padding: const EdgeInsets.all(AppSpacing.md),
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceContainerLow,
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                      border: Border.all(color: AppColors.primaryLight.withValues(alpha: 0.3)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Row(
+                          children: [
+                            Icon(Icons.info_outline, color: AppColors.primary, size: 18),
+                            SizedBox(width: 8),
+                            Text('Panduan Penilaian', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary)),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Isi matriks di bawah menggunakan skala 0 hingga 1 (contoh: 0.8).',
+                          style: TextStyle(fontSize: 12, color: AppColors.textPrimary),
+                        ),
+                        const SizedBox(height: 8),
+                        const Text('Keterangan Kriteria:', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primary)),
+                        const SizedBox(height: 4),
+                        ..._criteria.asMap().entries.map((e) {
+                          return Text(
+                            'C${e.key + 1} = ${e.value.name}',
+                            style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                          );
+                        }),
+                      ],
+                    ),
+                  ),
                   Container(
                     color: AppColors.surface,
                     padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
@@ -238,27 +274,35 @@ class _InputNilaiScreenState extends State<InputNilaiScreen> {
                             style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 1.0, color: AppColors.textTertiary),
                           ),
                         ),
-                        ..._criteria.map(
-                          (c) => Expanded(
-                            child: Column(
-                              children: [
-                                Text(
-                                  c.name,
-                                  textAlign: TextAlign.center,
-                                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                const SizedBox(height: 2),
-                                TypeBadge(type: c.type),
-                                const SizedBox(height: 2),
-                                Text(
-                                  'W:${c.weight.toStringAsFixed(2)}',
-                                  style: const TextStyle(fontSize: 9, color: AppColors.textTertiary),
-                                ),
-                              ],
-                            ),
-                          ),
+                      ..._criteria.asMap().entries.map(
+                          (e) {
+                            final idx = e.key;
+                            final c = e.value;
+                            final isBenefit = c.type.toLowerCase() == 'benefit';
+                            final color = isBenefit ? AppColors.success : AppColors.error;
+
+                            return Expanded(
+                              child: Column(
+                                children: [
+                                  Text(
+                                    'C${idx + 1}',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: color),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    c.type,
+                                    style: TextStyle(fontSize: 9, fontWeight: FontWeight.w600, color: color),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'W:${c.weight.toStringAsFixed(2)}',
+                                    style: const TextStyle(fontSize: 9, color: AppColors.textTertiary),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
                         ),
                       ],
                     ),

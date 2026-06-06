@@ -12,6 +12,7 @@ import '../../widgets/app_widgets.dart';
 import '../auth/login_screen.dart';
 import '../admin/alternative_screen.dart';
 import 'input_nilai_screen.dart';
+import 'edas_result_screen.dart';
 
 class UserDashboard extends StatefulWidget {
   const UserDashboard({super.key});
@@ -45,6 +46,89 @@ class _UserDashboardState extends State<UserDashboard> {
     ).then((created) {
       if (created == true) _load();
     });
+  }
+
+  Future<void> _confirmDelete(Assessment a) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Hapus Assessment'),
+        content: Text('Yakin ingin menghapus assessment "${a.title}"? Seluruh data matriks akan hilang.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Batal')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+            onPressed: () => Navigator.pop(ctx, true), 
+            child: const Text('Hapus')
+          ),
+        ],
+      )
+    );
+    if (confirm == true) {
+      setState(() => _isLoading = true);
+      await _api.deleteAssessment(a.id);
+      _load();
+    }
+  }
+
+  Future<void> _showEditDialog(Assessment a) async {
+    final titleCtrl = TextEditingController(text: a.title);
+    final descCtrl = TextEditingController(text: a.description);
+    final formKey = GlobalKey<FormState>();
+    bool loading = false;
+
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            title: const Text('Edit Assessment', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            content: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    controller: titleCtrl,
+                    decoration: const InputDecoration(labelText: 'Judul', filled: true),
+                    validator: (v) => v == null || v.isEmpty ? 'Wajib diisi' : null,
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: descCtrl,
+                    decoration: const InputDecoration(labelText: 'Deskripsi', filled: true),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: loading ? null : () => Navigator.pop(ctx), 
+                child: const Text('Batal')
+              ),
+              FilledButton(
+                onPressed: loading ? null : () async {
+                  if (formKey.currentState!.validate()) {
+                    setDialogState(() => loading = true);
+                    final success = await _api.updateAssessment(a.id, title: titleCtrl.text, description: descCtrl.text);
+                    setDialogState(() => loading = false);
+                    if (!ctx.mounted) return;
+                    if (success) {
+                      Navigator.pop(ctx);
+                      _load();
+                    } else {
+                      showSnackBar(ctx, 'Gagal mengedit assessment', isError: true);
+                    }
+                  }
+                },
+                child: loading ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Text('Simpan'),
+              ),
+            ],
+          );
+        }
+      )
+    );
   }
 
   @override
@@ -293,11 +377,15 @@ class _UserDashboardState extends State<UserDashboard> {
                     final a = _assessments[i];
                     return _AssessmentCard(
                       assessment: a,
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => InputNilaiScreen(assessment: a)),
-                      ),
+                      onTap: () {
+                         if (a.isCompleted) {
+                            Navigator.push(context, MaterialPageRoute(builder: (_) => EdasResultScreen(assessmentId: a.id, title: a.title)));
+                         } else {
+                            Navigator.push(context, MaterialPageRoute(builder: (_) => InputNilaiScreen(assessment: a)));
+                         }
+                      },
+                      onEdit: () => _showEditDialog(a),
+                      onDelete: () => _confirmDelete(a),
                     );
                   },
                 ),
@@ -359,7 +447,9 @@ class _StatChip extends StatelessWidget {
 class _AssessmentCard extends StatelessWidget {
   final Assessment assessment;
   final VoidCallback onTap;
-  const _AssessmentCard({required this.assessment, required this.onTap});
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+  const _AssessmentCard({required this.assessment, required this.onTap, required this.onEdit, required this.onDelete});
 
   @override
   Widget build(BuildContext context) {
@@ -447,12 +537,18 @@ class _AssessmentCard extends StatelessWidget {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             StatusBadge(isCompleted: isCompleted),
-                            const SizedBox(height: 4),
-                            const Icon(
-                              Icons.chevron_right,
-                              color: Color(0xFF94A3B8),
-                              size: 16,
-                            ),
+                          ],
+                        ),
+                        PopupMenuButton<String>(
+                          icon: const Icon(Icons.more_vert, color: Color(0xFF94A3B8), size: 20),
+                          padding: EdgeInsets.zero,
+                          onSelected: (val) {
+                            if (val == 'edit') onEdit();
+                            if (val == 'delete') onDelete();
+                          },
+                          itemBuilder: (ctx) => [
+                            const PopupMenuItem(value: 'edit', child: Text('Edit', style: TextStyle(fontSize: 13))),
+                            const PopupMenuItem(value: 'delete', child: Text('Hapus', style: TextStyle(fontSize: 13, color: AppColors.error))),
                           ],
                         ),
                       ],

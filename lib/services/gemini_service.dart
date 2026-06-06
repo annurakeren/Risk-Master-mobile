@@ -5,7 +5,7 @@ class GeminiService {
   static const _apiKey = 'AQ.Ab8RN6LtBAcYhHjWLpgQ8rDE8OMSfhvafWaioYevdPlpCvoSgQ';
 
   static final _model = GenerativeModel(
-    model: 'gemini-2.0-flash',
+    model: 'gemini-flash-latest',
     apiKey: _apiKey,
     generationConfig: GenerationConfig(
       temperature: 0.7,
