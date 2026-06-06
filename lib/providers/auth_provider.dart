@@ -112,8 +112,10 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Initialize Google Sign-In
-      await GoogleSignIn.instance.initialize();
+      // Initialize Google Sign-In with Web Client ID to get idToken
+      await GoogleSignIn.instance.initialize(
+        serverClientId: '853184495193-8ra5245om57iit2athokl6niqb14ftm6.apps.googleusercontent.com',
+      );
       
       // Trigger Google Sign-In flow
       final googleUser = await GoogleSignIn.instance.authenticate();
