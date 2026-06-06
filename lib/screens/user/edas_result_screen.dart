@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../config/app_theme.dart';
 import '../../services/api_service.dart';
+import '../../services/gemini_service.dart';
 import '../../models/assessment.dart';
 
 class EdasResultScreen extends StatefulWidget {
@@ -63,6 +64,19 @@ class _EdasResultScreenState extends State<EdasResultScreen> {
     }
   }
 
+  void _showAiRecommendation() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => _AiRecommendationSheet(
+        assessmentTitle: widget.title,
+        results: _results,
+        topRecommendation: _topRecommendation,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -87,6 +101,16 @@ class _EdasResultScreenState extends State<EdasResultScreen> {
           ),
         ],
       ),
+      floatingActionButton: _isLoading || _error != null
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: _showAiRecommendation,
+              icon: const Icon(Icons.auto_awesome, size: 20),
+              label: const Text('AI Insight'),
+              backgroundColor: const Color(0xFF7C3AED),
+              foregroundColor: Colors.white,
+              elevation: 4,
+            ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
           : _error != null
@@ -274,13 +298,421 @@ class _EdasResultScreenState extends State<EdasResultScreen> {
                           ],
                         ),
                       ),
-                      const SizedBox(height: 40),
+                      const SizedBox(height: 80), // Extra space for FAB
                     ],
                   ),
                 ),
     );
   }
 }
+
+// ─── AI Recommendation Bottom Sheet ──────────────────────────────────────────
+
+class _AiRecommendationSheet extends StatefulWidget {
+  final String assessmentTitle;
+  final List<EdasResult> results;
+  final String? topRecommendation;
+
+  const _AiRecommendationSheet({
+    required this.assessmentTitle,
+    required this.results,
+    required this.topRecommendation,
+  });
+
+  @override
+  State<_AiRecommendationSheet> createState() => _AiRecommendationSheetState();
+}
+
+class _AiRecommendationSheetState extends State<_AiRecommendationSheet>
+    with SingleTickerProviderStateMixin {
+  bool _isGenerating = true;
+  String _displayedText = '';
+  String _fullText = '';
+  String? _error;
+  bool _isTyping = false;
+
+  late AnimationController _shimmerController;
+
+  @override
+  void initState() {
+    super.initState();
+    _shimmerController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat();
+    _generate();
+  }
+
+  @override
+  void dispose() {
+    _shimmerController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _generate() async {
+    try {
+      final result = await GeminiService.generateRecommendation(
+        assessmentTitle: widget.assessmentTitle,
+        results: widget.results,
+        topRecommendation: widget.topRecommendation,
+      );
+      if (mounted) {
+        _fullText = result;
+        setState(() {
+          _isGenerating = false;
+          _isTyping = true;
+        });
+        _animateText();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isGenerating = false;
+          _error = e.toString().replaceAll('Exception: ', '');
+        });
+      }
+    }
+  }
+
+  Future<void> _animateText() async {
+    // Type out text character by character with variable speed
+    for (int i = 0; i < _fullText.length; i++) {
+      if (!mounted) return;
+      setState(() {
+        _displayedText = _fullText.substring(0, i + 1);
+      });
+      // Speed: faster for spaces/newlines, slower for other chars
+      final char = _fullText[i];
+      final delay = (char == ' ' || char == '\n') ? 2 : 8;
+      await Future.delayed(Duration(milliseconds: delay));
+    }
+    if (mounted) {
+      setState(() => _isTyping = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    return Container(
+      constraints: BoxConstraints(maxHeight: screenHeight * 0.85),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Handle bar
+          const SizedBox(height: 12),
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: AppColors.outlineVariant,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Header
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF7C3AED), Color(0xFFA855F7)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.auto_awesome, color: Colors.white, size: 20),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'AI Recommendation',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                      ),
+                      Text(
+                        'Powered by Gemini AI',
+                        style: TextStyle(fontSize: 11, color: AppColors.textTertiary),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close, color: AppColors.textTertiary),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          const Divider(height: 1),
+
+          // Content
+          Flexible(
+            child: _isGenerating
+                ? _buildLoadingState()
+                : _error != null
+                    ? _buildErrorState()
+                    : _buildResultContent(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLoadingState() {
+    return Padding(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(height: 32),
+          // Animated AI icon
+          AnimatedBuilder(
+            animation: _shimmerController,
+            builder: (context, child) {
+              return Transform.scale(
+                scale: 1.0 + (_shimmerController.value * 0.1),
+                child: Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        const Color(0xFF7C3AED).withValues(alpha: 0.2),
+                        const Color(0xFFA855F7).withValues(alpha: 0.3),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.auto_awesome,
+                    color: Color.lerp(
+                      const Color(0xFF7C3AED),
+                      const Color(0xFFA855F7),
+                      _shimmerController.value,
+                    ),
+                    size: 32,
+                  ),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 24),
+          const Text(
+            'Menganalisis hasil EDAS...',
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'AI sedang menyusun rekomendasi berdasarkan data ranking kamu',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 13, color: AppColors.textTertiary),
+          ),
+          const SizedBox(height: 24),
+          const LinearProgressIndicator(
+            color: Color(0xFF7C3AED),
+            backgroundColor: Color(0xFFEDE9FE),
+          ),
+          const SizedBox(height: 32),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorState() {
+    return Padding(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(height: 32),
+          Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              color: AppColors.errorContainer,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.error_outline, color: AppColors.error, size: 32),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'Gagal Menghasilkan Rekomendasi',
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _error!,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 13, color: AppColors.textTertiary),
+          ),
+          const SizedBox(height: 20),
+          FilledButton.icon(
+            onPressed: () {
+              setState(() {
+                _isGenerating = true;
+                _error = null;
+                _displayedText = '';
+                _fullText = '';
+              });
+              _generate();
+            },
+            icon: const Icon(Icons.refresh, size: 18),
+            label: const Text('Coba Lagi'),
+            style: FilledButton.styleFrom(backgroundColor: const Color(0xFF7C3AED)),
+          ),
+          const SizedBox(height: 32),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildResultContent() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Recommendation text with typing cursor
+          RichText(
+            text: TextSpan(
+              style: const TextStyle(
+                fontSize: 14,
+                color: AppColors.textPrimary,
+                height: 1.7,
+              ),
+              children: [
+                ..._parseStyledText(_displayedText),
+                if (_isTyping)
+                  const WidgetSpan(
+                    child: _BlinkingCursor(),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Disclaimer
+          if (!_isTyping)
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF7ED),
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+                border: Border.all(color: const Color(0xFFFED7AA)),
+              ),
+              child: const Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.info_outline, size: 16, color: Color(0xFFD97706)),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Rekomendasi ini dihasilkan oleh AI dan bersifat sugestif. Selalu pertimbangkan konteks spesifik organisasi Anda sebelum mengambil keputusan.',
+                      style: TextStyle(fontSize: 11, color: Color(0xFF92400E), height: 1.4),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          const SizedBox(height: 16),
+        ],
+      ),
+    );
+  }
+
+  /// Parse bold text (**text**) into styled TextSpans
+  List<InlineSpan> _parseStyledText(String text) {
+    final spans = <InlineSpan>[];
+    final regex = RegExp(r'\*\*(.*?)\*\*');
+    int lastEnd = 0;
+
+    for (final match in regex.allMatches(text)) {
+      // Add text before the bold part
+      if (match.start > lastEnd) {
+        spans.add(TextSpan(text: text.substring(lastEnd, match.start)));
+      }
+      // Add bold text
+      spans.add(TextSpan(
+        text: match.group(1),
+        style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF7C3AED)),
+      ));
+      lastEnd = match.end;
+    }
+
+    // Add remaining text
+    if (lastEnd < text.length) {
+      spans.add(TextSpan(text: text.substring(lastEnd)));
+    }
+
+    return spans;
+  }
+}
+
+// ─── Blinking Cursor ─────────────────────────────────────────────────────────
+
+class _BlinkingCursor extends StatefulWidget {
+  const _BlinkingCursor();
+
+  @override
+  State<_BlinkingCursor> createState() => _BlinkingCursorState();
+}
+
+class _BlinkingCursorState extends State<_BlinkingCursor>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Opacity(
+          opacity: _controller.value,
+          child: Container(
+            width: 2,
+            height: 16,
+            margin: const EdgeInsets.only(left: 2),
+            color: const Color(0xFF7C3AED),
+          ),
+        );
+      },
+    );
+  }
+}
+
+// ─── Existing Sub-components ─────────────────────────────────────────────────
 
 class _SubScoreStat extends StatelessWidget {
   final String label;

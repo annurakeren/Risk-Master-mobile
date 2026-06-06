@@ -26,9 +26,9 @@ class ApiService {
     _dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) async {
         final token = await _storage.read(key: 'token');
+        options.headers['Accept'] = 'application/json';
         if (token != null) {
           options.headers['Authorization'] = 'Bearer $token';
-          options.headers['Accept'] = 'application/json';
         }
         handler.next(options);
       },

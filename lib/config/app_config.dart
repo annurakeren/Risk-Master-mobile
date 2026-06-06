@@ -4,7 +4,7 @@ class AppConfig {
   // Ganti IP ini dengan IPv4 laptop kamu (bisa cek pakai command 'ipconfig' di CMD)
   // Contoh: '192.168.1.10'
   // IP WiFi laptop kamu (dari ipconfig)
-  static const String _localIp = '10.24.38.225';
+  static const String _localIp = '192.168.1.10';
 
   // URL Backend untuk Production (isi setelah deploy ke Railway)
   static const String _productionUrl = 'https://api.riskmaster.com/api';
